@@ -15,14 +15,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             users = data.users || [];
             tasks = data.tasks || [];
             currentUser = users.find(u => u.id == loggedInUserId);
-
-            if (!currentUser) {
-                alert("Usuário não encontrado. Deslogando.");
-                logout();
-            }
+            if (!currentUser) throw new Error("Usuário logado não encontrado nos dados.");
         } catch (error) {
             console.error("Erro crítico ao carregar dados:", error);
-            alert("Não foi possível conectar ao servidor. Verifique o console para mais detalhes.");
+            alert("Não foi possível conectar ao servidor. Verifique o console.");
+            logout();
         }
     }
 
@@ -36,12 +33,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!response.ok) throw new Error('Falha ao salvar dados no servidor');
         } catch (error) {
             console.error("Erro ao salvar dados:", error);
-            alert("Não foi possível salvar as alterações. Verifique o console para mais detalhes.");
+            alert("Não foi possível salvar as alterações.");
         }
     }
 
     await loadData();
-    if (!currentUser) return; 
+    if (!currentUser) return;
 
     let currentTab = 'personal';
     let adminPanelVisible = false;
@@ -69,15 +66,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const headerImg = document.getElementById('headerProfileImage');
         const cardImg = document.getElementById('cardProfileImage');
-        const headerIcon = document.getElementById('headerProfileIcon');
-        const cardIcon = document.getElementById('cardProfileIcon');
-
         if (currentUser.photoUrl) {
             [headerImg, cardImg].forEach(img => { if(img) { img.src = currentUser.photoUrl; img.classList.remove('hidden'); } });
-            [headerIcon, cardIcon].forEach(icon => { if(icon) icon.classList.add('hidden'); });
+            [document.getElementById('headerProfileIcon'), document.getElementById('cardProfileIcon')].forEach(icon => icon.classList.add('hidden'));
         } else {
             [headerImg, cardImg].forEach(img => { if(img) img.classList.add('hidden'); });
-            [headerIcon, cardIcon].forEach(icon => { if(icon) icon.classList.remove('hidden'); });
+            [document.getElementById('headerProfileIcon'), document.getElementById('cardProfileIcon')].forEach(icon => icon.classList.remove('hidden'));
         }
         
         document.getElementById('adminButton').classList.toggle('hidden', currentUser.role !== 'CEO');
@@ -88,7 +82,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (assignTaskContainer && assignTaskSelect) {
             if (canAssignTasks(currentUser.role)) {
                 assignTaskContainer.classList.remove('hidden');
-                assignTaskSelect.innerHTML = '<option value="">Atribuir a mim mesmo</option>';
+                assignTaskSelect.innerHTML = '<option value="">Ninguém (Tarefa Geral)</option>';
                 getAssignableUsers().forEach(u => {
                     assignTaskSelect.innerHTML += `<option value="${u.id}">${u.name} (${u.role})</option>`;
                 });
@@ -102,10 +96,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     function switchTab(tab) {
         currentTab = tab;
         document.querySelectorAll('.tab-btn').forEach(t => {
-            t.classList.toggle('text-custom-highlight', t.id === `${tab}Tab`);
-            t.classList.toggle('border-custom-highlight', t.id === `${tab}Tab`);
-            t.classList.toggle('text-custom-muted', t.id !== `${tab}Tab`);
-            t.classList.toggle('border-transparent', t.id !== `${tab}Tab`);
+            const isCurrent = t.id === `${tab}Tab`;
+            t.classList.toggle('text-custom-highlight', isCurrent);
+            t.classList.toggle('border-custom-highlight', isCurrent);
+            t.classList.toggle('text-custom-muted', !isCurrent);
+            t.classList.toggle('border-transparent', !isCurrent);
         });
         document.getElementById('tasksContent').classList.toggle('hidden', tab === 'overview');
         document.getElementById('overviewContent').classList.toggle('hidden', tab !== 'overview');
@@ -158,7 +153,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><span class="${task.status === 'completed' ? 'completed' : ''}">${task.title}</span></td>
-                <td>${getUserName(task.assignedTo)}</td><td>${getUserName(task.createdBy)}</td>
+                <td>${getUserName(task.assignedTo) || 'Geral'}</td><td>${getUserName(task.createdBy)}</td>
                 <td class="${isOverdue(task) ? 'text-danger' : ''}">${formatDate(task.dueDate)}</td>
                 <td>${task.status === 'completed' ? '<span class="status-badge status-completed">Concluída</span>' : (isOverdue(task) ? '<span class="status-badge status-pending">Atrasada</span>' : '<span class="status-badge status-pending">Pendente</span>')}</td>
                 <td><button data-task-id="${task.id}" class="delete-task-btn text-red-500 hover:text-red-400 p-1"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button></td>
@@ -175,15 +170,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!title || !dueDate) { alert('Título e Prazo são obrigatórios.'); return; }
         
         const assignedToId = document.getElementById('assignTaskTo').value;
-        tasks.push({
+
+        const isAssigned = assignedToId && assignedToId !== "";
+        const newTask = {
             id: generateId(tasks), title, description: document.getElementById('taskDescription').value,
-            dueDate: new Date(dueDate).toISOString(), status: 'pending', 
-            assignedTo: assignedToId ? parseInt(assignedToId) : currentUser.id,
-            createdBy: currentUser.id, 
-            type: currentTab === 'general' && !assignedToId ? 'general' : 'personal'
-        });
+            dueDate: new Date(dueDate).toISOString(), status: 'pending',
+            assignedTo: isAssigned ? parseInt(assignedToId) : null, 
+            createdBy: currentUser.id,
+            type: isAssigned ? 'personal' : 'general'
+        };
+
+        tasks.push(newTask);
         await saveData();
         document.getElementById('addTaskForm').reset();
+        
         if (currentTab === 'overview') renderOverviewTasks(); else renderTasks();
     }
 
@@ -234,9 +234,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (userIndex !== -1) {
             users[userIndex].role = newRole;
             if (users[userIndex].department === 'N/D') users[userIndex].department = 'Geral';
+            
             await saveData();
+            
             alert(`Cargo de ${users[userIndex].name} alterado para ${newRole}.`);
-            renderAdminUsersList();
+            renderAdminUsersList(); 
             cancelChangeRole();
         }
     }
@@ -297,11 +299,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (button.matches('.delete-user-btn')) {
             if (confirm('Tem certeza que deseja excluir este usuário?')) {
                 users = users.filter(u => u.id != button.dataset.userId);
-                await saveData();
-                renderAdminUsersList();
+                await saveData(); renderAdminUsersList();
             }
         }
-        
         if (button.matches('.delete-task-btn')) {
             if (confirm('Excluir esta tarefa?')) {
                 tasks = tasks.filter(t => t.id != button.dataset.taskId);
@@ -312,7 +312,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.body.addEventListener('change', async (event) => {
-        if (event.target.matches('.task-checkbox')) {
+        if(event.target.matches('.task-checkbox')) {
             const task = tasks.find(t => t.id == event.target.dataset.taskId);
             if (task) {
                 task.status = event.target.checked ? 'completed' : 'pending';
@@ -336,6 +336,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('changeRoleForm').addEventListener('submit', changeRole);
     document.getElementById('cancelChangeRoleButton').addEventListener('click', cancelChangeRole);
     document.getElementById('cancelChangeRoleButton2').addEventListener('click', cancelChangeRole);
+    
+    document.querySelectorAll('#overviewContent button').forEach(button => {
+        button.addEventListener('click', () => {
+            if(button.textContent.toLowerCase() === 'todas') overviewFilter = 'all';
+            if(button.textContent.toLowerCase() === 'pendentes') overviewFilter = 'pending';
+            if(button.textContent.toLowerCase() === 'atrasadas') overviewFilter = 'overdue';
+            renderOverviewTasks();
+        });
+    });
 
     console.log(`Bem-vindo, ${currentUser.name}!`);
     updateSystemUI();
