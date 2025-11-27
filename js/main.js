@@ -48,41 +48,63 @@ document.addEventListener('DOMContentLoaded', async () => {
     let tempPhotoBase64 = '';
     let overviewFilter = 'all';
 
+    const ROLES_HIERARCHY = {
+        "CEO": 5,
+        "Diretor Operacional": 4,
+        "Gerente": 3,
+        "Supervisor": 2,
+        "Colaborador": 1,
+        "Pendente": 0
+    };
+
     // --- 3. FUNÇÕES AUXILIARES ---
     const generateId = (array) => (array.length > 0 ? Math.max(...array.map(item => item.id)) + 1 : 1);
     const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
     const getUserName = (id) => (users.find(user => user.id == id) || { name: 'Desconhecido' }).name;
     const isOverdue = (task) => task.status === 'pending' && new Date(task.dueDate) < new Date().setHours(0, 0, 0, 0);
-    const safeRenderIcons = () => { try { if (typeof lucide !== 'undefined') lucide.createIcons() } catch (e) {} };
+    const safeRenderIcons = () => { try { if (typeof lucide !== 'undefined') lucide.createIcons() } catch (e) { } };
     const canAssignTasks = (role) => ['CEO', 'Diretor Operacional', 'gerente', 'Supervisor'].includes(role);
-    const getAssignableUsers = () => users.filter(user => user.id !== currentUser.id);
+    const getAssignableUsers = () => {
+        const currentUserRank = ROLES_HIERARCHY[currentUser.role] || 0;
+        return users.filter(user => {
+            const targetUserRank = ROLES_HIERARCHY[user.role] || 0;
+            return targetUserRank < currentUserRank;
+        });
+    };
 
     // --- 4. RENDERIZAÇÃO E ATUALIZAÇÃO DA INTERFACE ---
     function updateSystemUI() {
         currentUser = users.find(u => u.id == loggedInUserId);
+
         document.getElementById('userName').textContent = currentUser.name;
         document.getElementById('userRole').textContent = currentUser.role;
         document.getElementById('profileName').textContent = currentUser.name;
         document.getElementById('profileEmail').textContent = currentUser.email;
         document.getElementById('profileRole').textContent = currentUser.role;
         document.getElementById('profileDepartment').textContent = currentUser.department || 'N/D';
+
         const headerImg = document.getElementById('headerProfileImage');
         const cardImg = document.getElementById('cardProfileImage');
         if (currentUser.photoUrl) {
-            [headerImg, cardImg].forEach(img => { if(img) { img.src = currentUser.photoUrl; img.classList.remove('hidden'); } });
+            [headerImg, cardImg].forEach(img => { if (img) { img.src = currentUser.photoUrl; img.classList.remove('hidden'); } });
             [document.getElementById('headerProfileIcon'), document.getElementById('cardProfileIcon')].forEach(icon => icon.classList.add('hidden'));
         } else {
-            [headerImg, cardImg].forEach(img => { if(img) img.classList.add('hidden'); });
+            [headerImg, cardImg].forEach(img => { if (img) img.classList.add('hidden'); });
             [document.getElementById('headerProfileIcon'), document.getElementById('cardProfileIcon')].forEach(icon => icon.classList.remove('hidden'));
         }
+
         document.getElementById('adminButton').classList.toggle('hidden', currentUser.role !== 'CEO');
         document.getElementById('overviewTab').classList.toggle('hidden', currentUser.role !== 'CEO');
+
         const assignTaskContainer = document.getElementById('assignTaskContainer');
         const assignTaskSelect = document.getElementById('assignTaskTo');
         if (assignTaskContainer && assignTaskSelect) {
             if (canAssignTasks(currentUser.role)) {
                 assignTaskContainer.classList.remove('hidden');
-                assignTaskSelect.innerHTML = '<option value="">Ninguém (Tarefa Geral)</option>';
+                assignTaskSelect.innerHTML = `
+                    <option value="${currentUser.id}">Atribuir a mim mesmo</option>
+                    <option value="">Ninguém (Tarefa Geral)</option>
+                `;
                 getAssignableUsers().forEach(u => {
                     assignTaskSelect.innerHTML += `<option value="${u.id}">${u.name} (${u.role})</option>`;
                 });
@@ -165,18 +187,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         const title = document.getElementById('taskTitle').value;
         const dueDate = document.getElementById('taskDueDate').value;
         if (!title || !dueDate) { alert('Título e Prazo são obrigatórios.'); return; }
+
         const assignedToId = document.getElementById('assignTaskTo').value;
-        const isAssignedToPerson = assignedToId && assignedToId !== "";
-        const newTask = {
+        let finalAssignedTo = currentUser.id; 
+        let taskType = 'personal';
+
+        if (canAssignTasks(currentUser.role)) {
+            if (assignedToId && assignedToId !== "") {
+                finalAssignedTo = parseInt(assignedToId);
+                taskType = 'personal';
+            } else { 
+                finalAssignedTo = null;
+                taskType = 'general';
+            }
+        }
+
+        tasks.push({
             id: generateId(tasks), title, description: document.getElementById('taskDescription').value,
             dueDate: new Date(dueDate).toISOString(), status: 'pending',
-            assignedTo: isAssignedToPerson ? parseInt(assignedToId) : null,
-            type: isAssignedToPerson ? 'personal' : 'general',
+            assignedTo: finalAssignedTo,
+            type: taskType,
             createdBy: currentUser.id,
-        };
-        tasks.push(newTask);
+        });
         await saveData();
         document.getElementById('addTaskForm').reset();
+
         if (currentTab === 'overview') renderOverviewTasks(); else renderTasks();
     }
 
