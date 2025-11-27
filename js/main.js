@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    // --- 1. GUARDA DE AUTENTICAÇÃO E CARREGAMENTO DE DADOS ---
     const loggedInUserId = sessionStorage.getItem('loggedInUserId');
     if (!loggedInUserId) {
         window.location.href = 'login.html';
@@ -11,10 +10,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function loadData() {
         try {
             const response = await fetch('/api/data');
-            if (!response.ok) throw new Error('Falha ao carregar dados');
+            if (!response.ok) throw new Error('Falha ao carregar dados do servidor');
             const data = await response.json();
             users = data.users || [];
-            tasks = data.tasks || [];
+            tasks = (data.tasks || []).map(task => ({
+                ...task,
+                completedBy: Array.isArray(task.completedBy) ? task.completedBy : []
+            }));
             currentUser = users.find(u => u.id == loggedInUserId);
             if (!currentUser) throw new Error("Usuário logado não encontrado.");
         } catch (error) {
@@ -31,7 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ users, tasks })
             });
-            if (!response.ok) throw new Error('Falha ao salvar dados');
+            if (!response.ok) throw new Error('Falha ao salvar dados no servidor');
         } catch (error) {
             console.error("Erro ao salvar dados:", error);
             alert("Não foi possível salvar as alterações.");
@@ -41,7 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadData();
     if (!currentUser) return;
 
-    // --- 2. VARIÁVEIS DE ESTADO DO PAINEL ---
+    // --- 2. VARIÁVEIS DE ESTADO E CONSTANTES DE HIERARQUIA ---
     let currentTab = 'personal';
     let adminPanelVisible = false;
     let userIdToChangeRole = null;
@@ -60,13 +62,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- 3. FUNÇÕES AUXILIARES ---
     const generateId = (array) => (array.length > 0 ? Math.max(...array.map(item => item.id)) + 1 : 1);
     const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
-    const getUserName = (id) => (users.find(user => user.id == id) || { name: 'Desconhecido' }).name;
-    const isOverdue = (task) => task.status === 'pending' && new Date(task.dueDate) < new Date().setHours(0, 0, 0, 0);
-    const safeRenderIcons = () => { try { if (typeof lucide !== 'undefined') lucide.createIcons() } catch (e) { } };
-    const canAssignTasks = (role) => ['CEO', 'Diretor Operacional', 'gerente', 'Supervisor'].includes(role);
+    const getUser = (id) => users.find(user => user.id == id);
+    const getUserName = (id) => (getUser(id) || { name: 'Desconhecido' }).name;
+    const isOverdue = (task) => new Date(task.dueDate) < new Date().setHours(0, 0, 0, 0);
+    const safeRenderIcons = () => { try { if (typeof lucide !== 'undefined') lucide.createIcons() } catch (e) {} };
+    const canAssignTasks = (role) => (ROLES_HIERARCHY[role] || 0) >= 3;
+
     const getAssignableUsers = () => {
         const currentUserRank = ROLES_HIERARCHY[currentUser.role] || 0;
         return users.filter(user => {
+            if (user.id === currentUser.id) return false;
             const targetUserRank = ROLES_HIERARCHY[user.role] || 0;
             return targetUserRank < currentUserRank;
         });
@@ -115,7 +120,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         safeRenderIcons();
     }
 
-    // --- 5. LÓGICA DE TAREFAS ---
+    // --- 5. LÓGICA DE TAREFAS (GRANDES MUDANÇAS AQUI) ---
     function switchTab(tab) {
         currentTab = tab;
         document.querySelectorAll('.tab-btn').forEach(t => {
@@ -128,94 +133,94 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('overviewContent').classList.toggle('hidden', tab !== 'overview');
         if (tab === 'overview') renderOverviewTasks(); else renderTasks();
     }
+
     function renderTasks() {
         const tasksListDiv = document.getElementById('tasksList');
         tasksListDiv.innerHTML = '';
         let filteredTasks;
+
         if (currentTab === 'personal') {
             document.getElementById('tasksTitle').textContent = "Minhas Tarefas";
             filteredTasks = tasks.filter(task => task.assignedTo === currentUser.id);
-        } else {
+        } else { 
             document.getElementById('tasksTitle').textContent = "Tarefas Gerais";
             filteredTasks = tasks.filter(task => task.type === 'general');
         }
+
         if (filteredTasks.length === 0) {
             tasksListDiv.innerHTML = '<p class="p-6 text-center text-custom-muted">Nenhuma tarefa encontrada.</p>';
             return;
         }
+
         filteredTasks.forEach(task => {
+            const creator = getUser(task.createdBy);
+            const isCompletedByCurrentUser = task.completedBy.includes(currentUser.id);
+
+            const isVisuallyCompleted = (task.type === 'personal' && task.status === 'completed') || (task.type === 'general' && isCompletedByCurrentUser);
+
             const taskItem = document.createElement('div');
             taskItem.className = 'task-item flex items-center justify-between p-4';
+            taskItem.style.opacity = isVisuallyCompleted ? '0.5' : '1';
+
             taskItem.innerHTML = `
-            <div class="flex items-start space-x-4">
-                <input type="checkbox" data-task-id="${task.id}" class="task-checkbox mt-1 h-5 w-5 rounded bg-[#05131c] border-[#234356] text-[#33b4dc]" ${task.status === 'completed' ? 'checked' : ''} />
-                <div class="flex-1">
-                    <p class="font-medium text-white ${task.status === 'completed' ? 'completed' : ''}">${task.title}</p>
-                    
-                    <!-- DESCRIÇÃO ADICIONADA AQUI -->
-                    <p class="text-sm text-custom-muted mt-1 ${task.status === 'completed' ? 'completed' : ''}">${task.description || 'Sem descrição.'}</p>
-                    
-                    <p class="text-xs mt-2 ${isOverdue(task) ? 'text-danger' : 'text-custom-muted'}">Prazo: ${formatDate(task.dueDate)}</p>
+                <div class="flex items-start space-x-4 flex-1">
+                    <input type="checkbox" data-task-id="${task.id}" class="task-checkbox mt-1 h-5 w-5 rounded bg-[#05131c] border-[#234356] text-[#33b4dc]" 
+                        ${isCompletedByCurrentUser ? 'checked' : ''} 
+                    />
+                    <div class="flex-1">
+                        <p class="font-medium text-white ${isVisuallyCompleted ? 'completed' : ''}">${task.title}</p>
+                        <p class="text-sm text-custom-muted mt-1 ${isVisuallyCompleted ? 'completed' : ''}">${task.description || 'Sem descrição.'}</p>
+                        <p class="text-xs mt-2 ${isOverdue(task) && !isVisuallyCompleted ? 'text-danger' : 'text-custom-muted'}">Prazo: ${formatDate(task.dueDate)}</p>
+                        
+                        <!-- NOVO: Bloco do criador da tarefa -->
+                        ${creator ? `
+                        <div class="task-creator flex items-center space-x-2 mt-2 pt-2 border-t border-gray-700/50">
+                            ${creator.photoUrl ? 
+                                `<img src="${creator.photoUrl}" class="w-5 h-5 rounded-full object-cover">` : 
+                                `<div class="w-5 h-5 rounded-full bg-gray-600 flex items-center justify-center"><i data-lucide="user" class="w-3 h-3 text-white"></i></div>`
+                            }
+                            <span class="text-xs text-gray-400">Criada por: ${creator.name}</span>
+                        </div>
+                        ` : ''}
+
+                        <!-- NOVO: Bloco de quem concluiu (para tarefas gerais) -->
+                        ${task.type === 'general' && task.completedBy.length > 0 ? `
+                        <div class="completed-by-list mt-2 text-xs text-gray-500">
+                            Concluído por: ${task.completedBy.map(id => getUserName(id)).join(', ')}
+                        </div>
+                        ` : ''}
+                    </div>
                 </div>
-            </div>
-            <button data-task-id="${task.id}" class="delete-task-btn text-red-500 hover:text-red-400 p-2"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button>
-        `;
+                <button data-task-id="${task.id}" class="delete-task-btn text-red-500 hover:text-red-400 p-2"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button>
+            `;
             tasksListDiv.appendChild(taskItem);
         });
         safeRenderIcons();
     }
-    function renderOverviewTasks() {
-        const overviewList = document.getElementById('overviewTasksList');
-        if (!overviewList) return;
-        overviewList.innerHTML = '';
-        const filtered = tasks.filter(t => overviewFilter === 'all' || (overviewFilter === 'pending' && t.status === 'pending') || (overviewFilter === 'overdue' && isOverdue(t)));
-        if (filtered.length === 0) {
-            overviewList.innerHTML = '<tr><td colspan="6" class="text-center text-custom-muted py-4">Nenhuma tarefa encontrada.</td></tr>';
-            return;
-        }
-        filtered.forEach(task => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><span class="${task.status === 'completed' ? 'completed' : ''}">${task.title}</span></td>
-                <td>${getUserName(task.assignedTo) || 'Geral'}</td><td>${getUserName(task.createdBy)}</td>
-                <td class="${isOverdue(task) ? 'text-danger' : ''}">${formatDate(task.dueDate)}</td>
-                <td>${task.status === 'completed' ? '<span class="status-badge status-completed">Concluída</span>' : (isOverdue(task) ? '<span class="status-badge status-pending">Atrasada</span>' : '<span class="status-badge status-pending">Pendente</span>')}</td>
-                <td><button data-task-id="${task.id}" class="delete-task-btn text-red-500 hover:text-red-400 p-1"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button></td>
-            `;
-            overviewList.appendChild(tr);
-        });
-        safeRenderIcons();
-    }
+    
     async function handleAddTask(event) {
         event.preventDefault();
         const title = document.getElementById('taskTitle').value;
         const dueDate = document.getElementById('taskDueDate').value;
         if (!title || !dueDate) { alert('Título e Prazo são obrigatórios.'); return; }
-
+        
         const assignedToId = document.getElementById('assignTaskTo').value;
-        let finalAssignedTo = currentUser.id;
-        let taskType = 'personal';
-
-        if (canAssignTasks(currentUser.role)) {
-            if (assignedToId && assignedToId !== "") {
-                finalAssignedTo = parseInt(assignedToId);
-                taskType = 'personal';
-            } else {
-                finalAssignedTo = null;
-                taskType = 'general';
-            }
-        }
-
-        tasks.push({
+        const isAssignedToPerson = assignedToId && assignedToId !== "";
+        
+        const newTask = {
             id: generateId(tasks), title, description: document.getElementById('taskDescription').value,
-            dueDate: new Date(dueDate).toISOString(), status: 'pending',
-            assignedTo: finalAssignedTo,
-            type: taskType,
+            dueDate: new Date(dueDate).toISOString(), 
+            status: 'pending', 
+            completedBy: [],  
+            assignedTo: isAssignedToPerson ? parseInt(assignedToId) : null,
+            type: isAssignedToPerson ? 'personal' : 'general',
             createdBy: currentUser.id,
-        });
+        };
+
+        tasks.push(newTask);
         await saveData();
         document.getElementById('addTaskForm').reset();
-
+        
         if (currentTab === 'overview') renderOverviewTasks(); else renderTasks();
     }
 
