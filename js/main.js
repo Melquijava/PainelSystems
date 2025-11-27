@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function loadData() {
         try {
             const response = await fetch('/api/data');
-            if (!response.ok) throw new Error('Falha ao carregar dados do servidor');
+            if (!response.ok) throw new Error('Falha ao carregar dados');
             const data = await response.json();
             users = data.users || [];
             tasks = data.tasks || [];
@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ users, tasks })
             });
-            if (!response.ok) throw new Error('Falha ao salvar dados no servidor');
+            if (!response.ok) throw new Error('Falha ao salvar dados');
         } catch (error) {
             console.error("Erro ao salvar dados:", error);
             alert("Não foi possível salvar as alterações.");
@@ -60,14 +60,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- 4. RENDERIZAÇÃO E ATUALIZAÇÃO DA INTERFACE ---
     function updateSystemUI() {
         currentUser = users.find(u => u.id == loggedInUserId);
-        
         document.getElementById('userName').textContent = currentUser.name;
         document.getElementById('userRole').textContent = currentUser.role;
         document.getElementById('profileName').textContent = currentUser.name;
         document.getElementById('profileEmail').textContent = currentUser.email;
         document.getElementById('profileRole').textContent = currentUser.role;
         document.getElementById('profileDepartment').textContent = currentUser.department || 'N/D';
-
         const headerImg = document.getElementById('headerProfileImage');
         const cardImg = document.getElementById('cardProfileImage');
         if (currentUser.photoUrl) {
@@ -77,10 +75,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             [headerImg, cardImg].forEach(img => { if(img) img.classList.add('hidden'); });
             [document.getElementById('headerProfileIcon'), document.getElementById('cardProfileIcon')].forEach(icon => icon.classList.remove('hidden'));
         }
-        
         document.getElementById('adminButton').classList.toggle('hidden', currentUser.role !== 'CEO');
         document.getElementById('overviewTab').classList.toggle('hidden', currentUser.role !== 'CEO');
-
         const assignTaskContainer = document.getElementById('assignTaskContainer');
         const assignTaskSelect = document.getElementById('assignTaskTo');
         if (assignTaskContainer && assignTaskSelect) {
@@ -96,7 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         safeRenderIcons();
     }
-    
+
     // --- 5. LÓGICA DE TAREFAS ---
     function switchTab(tab) {
         currentTab = tab;
@@ -110,7 +106,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('overviewContent').classList.toggle('hidden', tab !== 'overview');
         if (tab === 'overview') renderOverviewTasks(); else renderTasks();
     }
-
     function renderTasks() {
         const tasksListDiv = document.getElementById('tasksList');
         tasksListDiv.innerHTML = '';
@@ -143,7 +138,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         safeRenderIcons();
     }
-    
     function renderOverviewTasks() {
         const overviewList = document.getElementById('overviewTasksList');
         if (!overviewList) return;
@@ -166,16 +160,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         safeRenderIcons();
     }
-
     async function handleAddTask(event) {
         event.preventDefault();
         const title = document.getElementById('taskTitle').value;
         const dueDate = document.getElementById('taskDueDate').value;
         if (!title || !dueDate) { alert('Título e Prazo são obrigatórios.'); return; }
-
         const assignedToId = document.getElementById('assignTaskTo').value;
         const isAssignedToPerson = assignedToId && assignedToId !== "";
-
         const newTask = {
             id: generateId(tasks), title, description: document.getElementById('taskDescription').value,
             dueDate: new Date(dueDate).toISOString(), status: 'pending',
@@ -183,11 +174,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             type: isAssignedToPerson ? 'personal' : 'general',
             createdBy: currentUser.id,
         };
-
         tasks.push(newTask);
         await saveData();
         document.getElementById('addTaskForm').reset();
-
         if (currentTab === 'overview') renderOverviewTasks(); else renderTasks();
     }
 
@@ -215,7 +204,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         safeRenderIcons();
     }
-    
+
     function showChangeRoleModal(userId) {
         const userToEdit = users.find(u => u.id == userId);
         if (!userToEdit) return;
@@ -245,7 +234,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             cancelChangeRole();
         }
     }
-    
+
     function showEditProfile() {
         document.getElementById('editName').value = currentUser.name;
         tempPhotoBase64 = currentUser.photoUrl || '';
@@ -298,13 +287,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.body.addEventListener('click', async (event) => {
         const button = event.target.closest('button');
         if (!button) return;
-
         if (button.matches('.change-role-btn')) showChangeRoleModal(button.dataset.userId);
         if (button.matches('.delete-user-btn')) {
-            if (confirm('Tem certeza que deseja excluir este usuário?')) {
+            if (confirm('Tem certeza?')) {
                 users = users.filter(u => u.id != button.dataset.userId);
-                await saveData();
-                renderAdminUsersList();
+                await saveData(); renderAdminUsersList();
             }
         }
         if (button.matches('.delete-task-btn')) {
@@ -315,7 +302,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     });
-
     document.body.addEventListener('change', async (event) => {
         if (event.target.matches('.task-checkbox')) {
             const task = tasks.find(t => t.id == event.target.dataset.taskId);
@@ -343,13 +329,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('cancelChangeRoleButton').addEventListener('click', cancelChangeRole);
     document.getElementById('cancelChangeRoleButton2').addEventListener('click', cancelChangeRole);
 
-    document.querySelectorAll('#overviewContent button[data-filter]').forEach(button => {
-        button.addEventListener('click', () => {
+    // CORREÇÃO: Listener para os filtros da Visão Geral
+    document.getElementById('overviewFilters').addEventListener('click', (event) => {
+        const button = event.target.closest('button');
+        if (button && button.dataset.filter) {
             overviewFilter = button.dataset.filter;
             renderOverviewTasks();
-        });
+        }
     });
-    
+
     // --- 9. INICIALIZAÇÃO DO PAINEL ---
     console.log(`Bem-vindo, ${currentUser.name}!`);
     updateSystemUI();

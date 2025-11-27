@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
+
 <body class="bg-custom-deep">
 
     <div id="mainSystem">
@@ -18,11 +20,13 @@
                     <p class="font-medium text-white" id="userName">Usuário</p>
                     <p class="text-sm text-custom-muted" id="userRole">Cargo</p>
                 </div>
-                <div class="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden bg-gradient-to-r from-[#0c4073] to-[#33b4dc]">
+                <div
+                    class="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden bg-gradient-to-r from-[#0c4073] to-[#33b4dc]">
                     <img id="headerProfileImage" src="" alt="Perfil" class="w-full h-full object-cover hidden">
                     <i data-lucide="user" class="w-5 h-5 text-white" id="headerProfileIcon"></i>
                 </div>
-                <button id="adminButton" class="hidden p-2 text-[#33b4dc] hover:text-white transition" title="Painel Administrativo">
+                <button id="adminButton" class="hidden p-2 text-[#33b4dc] hover:text-white transition"
+                    title="Painel Administrativo">
                     <i data-lucide="shield" class="w-5 h-5"></i>
                 </button>
                 <button id="logoutButton" class="p-2 text-custom-muted hover:text-white transition" title="Sair">
@@ -34,9 +38,15 @@
         <nav class="border-b border-[#234356]" style="background-color: #0e2a38;">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex space-x-8">
-                    <button id="personalTab" class="py-4 px-1 border-b-2 font-medium text-sm transition duration-200 tab-btn">Minhas Tarefas</button>
-                    <button id="generalTab" class="py-4 px-1 border-b-2 font-medium text-sm transition duration-200 tab-btn">Tarefas Gerais</button>
-                    <button id="overviewTab" class="hidden py-4 px-1 border-b-2 font-medium text-sm transition duration-200 tab-btn">Visão Geral</button>
+                    <button id="personalTab"
+                        class="py-4 px-1 border-b-2 font-medium text-sm transition duration-200 tab-btn">Minhas
+                        Tarefas</button>
+                    <button id="generalTab"
+                        class="py-4 px-1 border-b-2 font-medium text-sm transition duration-200 tab-btn">Tarefas
+                        Gerais</button>
+                    <button id="overviewTab"
+                        class="hidden py-4 px-1 border-b-2 font-medium text-sm transition duration-200 tab-btn">Visão
+                        Geral</button>
                 </div>
             </div>
         </nav>
@@ -62,14 +72,18 @@
                     <div class="bg-custom-card rounded-lg shadow-lg border border-[#234356] p-6">
                         <h3 class="text-lg font-semibold text-white mb-4">Adicionar Tarefa</h3>
                         <form id="addTaskForm" class="space-y-4">
-                            <input id="taskTitle" type="text" placeholder="Título" class="w-full px-3 py-2 rounded-lg" required />
-                            <textarea id="taskDescription" rows="3" placeholder="Descrição" class="w-full px-3 py-2 rounded-lg"></textarea>
+                            <input id="taskTitle" type="text" placeholder="Título" class="w-full px-3 py-2 rounded-lg"
+                                required />
+                            <textarea id="taskDescription" rows="3" placeholder="Descrição"
+                                class="w-full px-3 py-2 rounded-lg"></textarea>
                             <input id="taskDueDate" type="date" class="w-full px-3 py-2 rounded-lg" required />
                             <div id="assignTaskContainer" class="hidden">
-                                <label class="block text-sm font-medium text-custom-muted mb-1">Atribuir a (opcional)</label>
+                                <label class="block text-sm font-medium text-custom-muted mb-1">Atribuir a
+                                    (opcional)</label>
                                 <select id="assignTaskTo" class="w-full px-3 py-2 rounded-lg"></select>
                             </div>
-                            <button type="submit" class="w-full text-white py-2 px-4 rounded-lg flex items-center justify-center space-x-2 btn-primary">
+                            <button type="submit"
+                                class="w-full text-white py-2 px-4 rounded-lg flex items-center justify-center space-x-2 btn-primary">
                                 <i data-lucide="plus" class="w-4 h-4"></i>
                                 <span>Adicionar</span>
                             </button>
@@ -78,14 +92,17 @@
                     <div class="bg-custom-card rounded-lg shadow-lg border border-[#234356] p-6">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-lg font-semibold text-white">Seu Perfil</h3>
-                            <button id="showEditProfileButton" class="text-sm text-custom-highlight hover:text-white transition flex items-center space-x-1">
+                            <button id="showEditProfileButton"
+                                class="text-sm text-custom-highlight hover:text-white transition flex items-center space-x-1">
                                 <i data-lucide="edit-2" class="w-4 h-4"></i><span>Editar</span>
                             </button>
                         </div>
                         <div class="space-y-3">
                             <div class="flex items-center space-x-3">
-                                <div class="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden bg-gradient-to-r from-[#0c4073] to-[#6a99a3]">
-                                    <img id="cardProfileImage" src="" alt="Perfil" class="w-full h-full object-cover hidden">
+                                <div
+                                    class="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden bg-gradient-to-r from-[#0c4073] to-[#6a99a3]">
+                                    <img id="cardProfileImage" src="" alt="Perfil"
+                                        class="w-full h-full object-cover hidden">
                                     <i data-lucide="user" class="w-8 h-8 text-white" id="cardProfileIcon"></i>
                                 </div>
                                 <div>
@@ -109,12 +126,12 @@
                 <div class="bg-custom-card rounded-lg shadow-lg border border-[#234356] p-6">
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-xl font-semibold text-white">Visão Geral de Tarefas</h2>
-                        <div class="flex space-x-2">
-                            <button onclick="filterOverview('all')"
+                        <div class="flex space-x-2" id="overviewFilters">
+                            <button data-filter="all"
                                 class="px-3 py-1 text-sm rounded-full bg-[#0e2a38] text-white hover:bg-[#234356]">Todas</button>
-                            <button onclick="filterOverview('pending')"
+                            <button data-filter="pending"
                                 class="px-3 py-1 text-sm rounded-full bg-[#0e2a38] text-custom-highlight hover:bg-[#234356]">Pendentes</button>
-                            <button onclick="filterOverview('overdue')"
+                            <button data-filter="overdue"
                                 class="px-3 py-1 text-sm rounded-full bg-[#0e2a38] text-danger hover:bg-[#234356]">Atrasadas</button>
                         </div>
                     </div>
@@ -138,37 +155,47 @@
         </main>
     </div>
 
-    <div id="editProfileScreen" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-75">
+    <div id="editProfileScreen"
+        class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-75">
         <div class="bg-custom-card rounded-2xl shadow-2xl p-8 w-full max-w-md border border-[#234356]">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-semibold text-white">Editar Meu Perfil</h2>
-                <button id="cancelEditProfileButton" class="text-custom-muted hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+                <button id="cancelEditProfileButton" class="text-custom-muted hover:text-white"><i data-lucide="x"
+                        class="w-6 h-6"></i></button>
             </div>
             <form id="editProfileForm" class="space-y-4">
                 <div class="flex flex-col items-center mb-4 space-y-3">
-                    <div class="w-24 h-24 rounded-full flex items-center justify-center overflow-hidden border-2 border-custom-highlight relative bg-gradient-to-r from-[#0c4073] to-[#6a99a3]">
+                    <div
+                        class="w-24 h-24 rounded-full flex items-center justify-center overflow-hidden border-2 border-custom-highlight relative bg-gradient-to-r from-[#0c4073] to-[#6a99a3]">
                         <img id="editProfilePreview" src="" alt="Preview" class="w-full h-full object-cover hidden">
                         <i data-lucide="user" class="w-10 h-10 text-white" id="editProfileIcon"></i>
                     </div>
                     <input type="file" id="editPhotoInput" accept="image/*" class="hidden">
-                    <label for="editPhotoInput" class="cursor-pointer py-2 px-4 rounded-lg text-sm font-medium text-custom-highlight border border-custom-highlight hover:bg-[#0c4073] hover:text-white transition flex items-center space-x-2">
+                    <label for="editPhotoInput"
+                        class="cursor-pointer py-2 px-4 rounded-lg text-sm font-medium text-custom-highlight border border-custom-highlight hover:bg-[#0c4073] hover:text-white transition flex items-center space-x-2">
                         <i data-lucide="upload" class="w-4 h-4"></i><span>Alterar Foto</span>
                     </label>
                 </div>
                 <input id="editName" type="text" class="w-full px-3 py-2 rounded-lg" required />
                 <div class="pt-4 flex space-x-3">
-                    <button type="button" id="cancelEditProfileButton2" class="w-1/2 py-2 px-4 rounded-lg border border-[#234356] text-custom-muted hover:bg-[#0e2a38] transition">Cancelar</button>
-                    <button type="submit" class="w-1/2 text-white py-2 px-4 rounded-lg transition duration-200 btn-primary">Salvar Alterações</button>
+                    <button type="button" id="cancelEditProfileButton2"
+                        class="w-1/2 py-2 px-4 rounded-lg border border-[#234356] text-custom-muted hover:bg-[#0e2a38] transition">Cancelar</button>
+                    <button type="submit"
+                        class="w-1/2 text-white py-2 px-4 rounded-lg transition duration-200 btn-primary">Salvar
+                        Alterações</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div id="changeRoleScreen" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-75">
+    <div id="changeRoleScreen"
+        class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-75">
         <div class="bg-custom-card rounded-2xl shadow-2xl p-8 w-full max-w-md border border-[#234356]">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-semibold text-white">Alterar Cargo de <span id="changeRoleUserName" class="text-custom-highlight"></span></h2>
-                <button id="cancelChangeRoleButton" class="text-custom-muted hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+                <h2 class="text-xl font-semibold text-white">Alterar Cargo de <span id="changeRoleUserName"
+                        class="text-custom-highlight"></span></h2>
+                <button id="cancelChangeRoleButton" class="text-custom-muted hover:text-white"><i data-lucide="x"
+                        class="w-6 h-6"></i></button>
             </div>
             <form id="changeRoleForm" class="space-y-4">
                 <select id="newRoleSelect" class="w-full px-3 py-2 rounded-lg" required>
@@ -181,13 +208,17 @@
                     <option value="colaborador">Colaborador</option>
                 </select>
                 <div class="pt-4 flex space-x-3">
-                    <button type="button" id="cancelChangeRoleButton2" class="w-1/2 py-2 px-4 rounded-lg border border-[#234356] text-custom-muted hover:bg-[#0e2a38] transition">Cancelar</button>
-                    <button type="submit" class="w-1/2 text-white py-2 px-4 rounded-lg transition duration-200 btn-primary">Salvar Cargo</button>
+                    <button type="button" id="cancelChangeRoleButton2"
+                        class="w-1/2 py-2 px-4 rounded-lg border border-[#234356] text-custom-muted hover:bg-[#0e2a38] transition">Cancelar</button>
+                    <button type="submit"
+                        class="w-1/2 text-white py-2 px-4 rounded-lg transition duration-200 btn-primary">Salvar
+                        Cargo</button>
                 </div>
             </form>
         </div>
     </div>
-    
+
     <script src="js/main.js"></script>
 </body>
+
 </html>
