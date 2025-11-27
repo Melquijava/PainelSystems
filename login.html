@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Systems_bsi</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+
+<body class="min-h-screen">
+
+    <div class="min-h-screen flex items-center justify-center p-4"
+        style="background: linear-gradient(135deg, #030c13 0%, #052748 100%);">
+        <div class="bg-custom-card rounded-2xl shadow-2xl p-8 w-full max-w-md border border-[#234356]">
+
+            <div class="text-center mb-8">
+                <div class="mx-auto w-48 h-48 rounded-full flex items-center justify-center mb-6 overflow-hidden">
+                    <img src="assets/img/logo4k.jpg" alt="Logo Systems_bsi" class="w-full h-full object-cover">
+                </div>
+                <h1 class="text-2xl font-bold text-white">Bem-vindo a Systems_bsi</h1>
+                <p class="text-custom-muted mt-2">Acesse sua conta para continuar</p>
+            </div>
+
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-custom-muted mb-2">Email</label>
+                    <input id="email" type="email" class="w-full px-4 py-3 rounded-lg" value="ceo@systems.com"
+                        required />
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-custom-muted mb-2">Senha</label>
+                    <input id="password" type="password" class="w-full px-4 py-3 rounded-lg" value="123" required />
+                </div>
+                <button type="submit"
+                    class="w-full text-white py-3 px-4 rounded-lg transition duration-200 btn-primary">
+                    Acessar Sistema
+                </button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <a href="register.html"
+                    class="text-custom-highlight hover:text-[#2da1cc] text-sm font-medium transition duration-200">
+                    Criar Nova Conta
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+</body>
+
+</html>

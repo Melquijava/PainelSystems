@@ -1,0 +1,73 @@
+:root {
+    --bg-deep: #030c13;      
+    --bg-card: #071925;     
+    --bg-input: #05131c;    
+    --bg-hover: #0e2a38;     
+    --border: #234356;      
+    --text-main: #ffffff;    
+    --text-muted: #6a99a3;   
+    --highlight: #33b4dc;   
+    --btn-primary: #0c4073; 
+    --btn-hover: #052748;    
+    --danger: #e74c3c;    
+    --success: #2ecc71;      
+}
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background-color: var(--bg-deep);
+    color: var(--text-main);
+}
+
+.bg-custom-card { background-color: var(--bg-card); }
+.text-custom-muted { color: var(--text-muted); }
+.text-custom-highlight { color: var(--highlight); }
+.text-danger { color: var(--danger); }
+.btn-primary { background-color: var(--btn-primary); }
+.btn-primary:hover { background-color: var(--btn-hover); }
+
+.main-header {
+    background-color: #05131c;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+}
+
+.task-item {
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid var(--border);
+}
+.task-item:hover { background-color: var(--bg-hover); }
+.completed { text-decoration: line-through; color: var(--text-muted); }
+
+input, select, textarea {
+    background-color: var(--bg-input) !important;
+    border: 1px solid var(--border) !important;
+    color: white !important;
+    border-radius: 0.5rem;
+}
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--highlight) !important;
+    box-shadow: 0 0 0 2px rgba(51, 180, 220, 0.2);
+}
+input::placeholder, textarea::placeholder { color: #4a5c6a; }
+input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-deep); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+.admin-table { width: 100%; border-collapse: collapse; }
+.admin-table th, .admin-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border); }
+.admin-table th { background-color: #0e2a38; color: var(--text-muted); font-weight: 600; }
+.admin-table tr:hover { background-color: var(--bg-hover); }
+
+.status-badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+.status-pending { background-color: rgba(231, 76, 60, 0.2); color: var(--danger); }
+.status-completed { background-color: rgba(46, 204, 113, 0.2); color: var(--success); }
