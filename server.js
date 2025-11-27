@@ -12,40 +12,38 @@ if (!fs.existsSync(dataFolderPath)) {
     fs.mkdirSync(dataFolderPath, { recursive: true });
 }
 
-app.use(express.json());
-app.use(express.static(__dirname)); 
--
+app.use(express.json({ limit: '5mb' }));
+app.use(express.static(__dirname));
 
 
 app.get('/api/data', (req, res) => {
-    fs.readFile(dataFilePath, 'utf8', (err, data) => {
-        if (err) {
-            if (err.code === 'ENOENT') {
-                const defaultData = {
-                    users: [{ id: 1, name: 'CEO', email: 'ceo@systems.com', password: '123', role: 'CEO', department: 'Diretoria', photoUrl: '' }],
-                    tasks: []
-                };
-                fs.writeFile(dataFilePath, JSON.stringify(defaultData, null, 2), (writeErr) => {
-                    if (writeErr) return res.status(500).json({ message: "Erro ao criar arquivo de dados." });
-                    return res.json(defaultData);
-                });
-            } else {
-                return res.status(500).json({ message: "Erro ao ler dados." });
-            }
+    try {
+        if (fs.existsSync(dataFilePath)) {
+            const fileData = fs.readFileSync(dataFilePath, 'utf8');
+            res.json(JSON.parse(fileData));
         } else {
-            res.json(JSON.parse(data));
+            const defaultData = {
+                users: [{ id: 1, name: 'CEO', email: 'ceo@systems.com', password: '123', role: 'CEO', department: 'Diretoria', photoUrl: '' }],
+                tasks: []
+            };
+            fs.writeFileSync(dataFilePath, JSON.stringify(defaultData, null, 2));
+            res.json(defaultData);
         }
-    });
+    } catch (error) {
+        console.error("Erro ao ler dados:", error);
+        res.status(500).json({ message: "Erro ao ler dados." });
+    }
 });
 
 app.post('/api/data', (req, res) => {
-    const newData = req.body;
-    fs.writeFile(dataFilePath, JSON.stringify(newData, null, 2), (err) => {
-        if (err) {
-            return res.status(500).json({ message: "Erro ao salvar dados." });
-        }
+    try {
+        const newData = req.body;
+        fs.writeFileSync(dataFilePath, JSON.stringify(newData, null, 2));
         res.status(200).json({ message: "Dados salvos com sucesso!" });
-    });
+    } catch (error) {
+        console.error("Erro ao salvar dados:", error);
+        res.status(500).json({ message: "Erro ao salvar dados." });
+    }
 });
 
 app.get('/', (req, res) => {

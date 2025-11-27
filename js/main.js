@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    // --- 1. GUARDA DE AUTENTICAÇÃO E CARREGAMENTO DE DADOS ---
     const loggedInUserId = sessionStorage.getItem('loggedInUserId');
     if (!loggedInUserId) {
         window.location.href = 'login.html';
@@ -15,10 +16,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             users = data.users || [];
             tasks = data.tasks || [];
             currentUser = users.find(u => u.id == loggedInUserId);
-            if (!currentUser) throw new Error("Usuário logado não encontrado nos dados.");
+            if (!currentUser) throw new Error("Usuário logado não encontrado.");
         } catch (error) {
             console.error("Erro crítico ao carregar dados:", error);
-            alert("Não foi possível conectar ao servidor. Verifique o console.");
+            alert("Não foi possível conectar ao servidor.");
             logout();
         }
     }
@@ -40,12 +41,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadData();
     if (!currentUser) return;
 
+    // --- 2. VARIÁVEIS DE ESTADO DO PAINEL ---
     let currentTab = 'personal';
     let adminPanelVisible = false;
     let userIdToChangeRole = null;
     let tempPhotoBase64 = '';
     let overviewFilter = 'all';
 
+    // --- 3. FUNÇÕES AUXILIARES ---
     const generateId = (array) => (array.length > 0 ? Math.max(...array.map(item => item.id)) + 1 : 1);
     const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
     const getUserName = (id) => (users.find(user => user.id == id) || { name: 'Desconhecido' }).name;
@@ -54,6 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const canAssignTasks = (role) => ['CEO', 'Diretor Operacional', 'gerente', 'Supervisor'].includes(role);
     const getAssignableUsers = () => users.filter(user => user.id !== currentUser.id);
 
+    // --- 4. RENDERIZAÇÃO E ATUALIZAÇÃO DA INTERFACE ---
     function updateSystemUI() {
         currentUser = users.find(u => u.id == loggedInUserId);
         
@@ -93,14 +97,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         safeRenderIcons();
     }
     
+    // --- 5. LÓGICA DE TAREFAS ---
     function switchTab(tab) {
         currentTab = tab;
         document.querySelectorAll('.tab-btn').forEach(t => {
-            const isCurrent = t.id === `${tab}Tab`;
-            t.classList.toggle('text-custom-highlight', isCurrent);
-            t.classList.toggle('border-custom-highlight', isCurrent);
-            t.classList.toggle('text-custom-muted', !isCurrent);
-            t.classList.toggle('border-transparent', !isCurrent);
+            t.classList.toggle('text-custom-highlight', t.id === `${tab}Tab`);
+            t.classList.toggle('border-custom-highlight', t.id === `${tab}Tab`);
+            t.classList.toggle('text-custom-muted', t.id !== `${tab}Tab`);
+            t.classList.toggle('border-transparent', t.id !== `${tab}Tab`);
         });
         document.getElementById('tasksContent').classList.toggle('hidden', tab === 'overview');
         document.getElementById('overviewContent').classList.toggle('hidden', tab !== 'overview');
@@ -168,25 +172,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         const title = document.getElementById('taskTitle').value;
         const dueDate = document.getElementById('taskDueDate').value;
         if (!title || !dueDate) { alert('Título e Prazo são obrigatórios.'); return; }
-        
-        const assignedToId = document.getElementById('assignTaskTo').value;
 
-        const isAssigned = assignedToId && assignedToId !== "";
+        const assignedToId = document.getElementById('assignTaskTo').value;
+        const isAssignedToPerson = assignedToId && assignedToId !== "";
+
         const newTask = {
             id: generateId(tasks), title, description: document.getElementById('taskDescription').value,
             dueDate: new Date(dueDate).toISOString(), status: 'pending',
-            assignedTo: isAssigned ? parseInt(assignedToId) : null, 
+            assignedTo: isAssignedToPerson ? parseInt(assignedToId) : null,
+            type: isAssignedToPerson ? 'personal' : 'general',
             createdBy: currentUser.id,
-            type: isAssigned ? 'personal' : 'general'
         };
 
         tasks.push(newTask);
         await saveData();
         document.getElementById('addTaskForm').reset();
-        
+
         if (currentTab === 'overview') renderOverviewTasks(); else renderTasks();
     }
 
+    // --- 6. FUNCIONALIDADES DE ADMINISTRAÇÃO E PERFIL ---
     function toggleAdminPanel() {
         adminPanelVisible = !adminPanelVisible;
         document.getElementById('adminPanel').classList.toggle('hidden', !adminPanelVisible);
@@ -234,11 +239,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (userIndex !== -1) {
             users[userIndex].role = newRole;
             if (users[userIndex].department === 'N/D') users[userIndex].department = 'Geral';
-            
             await saveData();
-            
             alert(`Cargo de ${users[userIndex].name} alterado para ${newRole}.`);
-            renderAdminUsersList(); 
+            renderAdminUsersList();
             cancelChangeRole();
         }
     }
@@ -291,6 +294,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = 'login.html';
     }
 
+    // --- 7. EVENT DELEGATION E LISTENERS ---
     document.body.addEventListener('click', async (event) => {
         const button = event.target.closest('button');
         if (!button) return;
@@ -299,7 +303,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (button.matches('.delete-user-btn')) {
             if (confirm('Tem certeza que deseja excluir este usuário?')) {
                 users = users.filter(u => u.id != button.dataset.userId);
-                await saveData(); renderAdminUsersList();
+                await saveData();
+                renderAdminUsersList();
             }
         }
         if (button.matches('.delete-task-btn')) {
@@ -312,7 +317,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.body.addEventListener('change', async (event) => {
-        if(event.target.matches('.task-checkbox')) {
+        if (event.target.matches('.task-checkbox')) {
             const task = tasks.find(t => t.id == event.target.dataset.taskId);
             if (task) {
                 task.status = event.target.checked ? 'completed' : 'pending';
@@ -322,6 +327,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    // --- 8. LISTENERS DIRETOS E INICIALIZAÇÃO ---
     document.getElementById('logoutButton').addEventListener('click', logout);
     document.getElementById('adminButton').addEventListener('click', toggleAdminPanel);
     document.getElementById('personalTab').addEventListener('click', () => switchTab('personal'));
@@ -336,16 +342,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('changeRoleForm').addEventListener('submit', changeRole);
     document.getElementById('cancelChangeRoleButton').addEventListener('click', cancelChangeRole);
     document.getElementById('cancelChangeRoleButton2').addEventListener('click', cancelChangeRole);
-    
-    document.querySelectorAll('#overviewContent button').forEach(button => {
+
+    document.querySelectorAll('#overviewContent button[data-filter]').forEach(button => {
         button.addEventListener('click', () => {
-            if(button.textContent.toLowerCase() === 'todas') overviewFilter = 'all';
-            if(button.textContent.toLowerCase() === 'pendentes') overviewFilter = 'pending';
-            if(button.textContent.toLowerCase() === 'atrasadas') overviewFilter = 'overdue';
+            overviewFilter = button.dataset.filter;
             renderOverviewTasks();
         });
     });
-
+    
+    // --- 9. INICIALIZAÇÃO DO PAINEL ---
     console.log(`Bem-vindo, ${currentUser.name}!`);
     updateSystemUI();
     if (currentUser.role === 'CEO') switchTab('overview'); else switchTab('personal');
