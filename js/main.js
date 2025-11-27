@@ -64,10 +64,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
     const getUser = (id) => users.find(user => user.id == id);
     const getUserName = (id) => (getUser(id) || { name: 'Desconhecido' }).name;
-    const isOverdue = (task) => new Date(task.dueDate) < new Date().setHours(0, 0, 0, 0);
-    const safeRenderIcons = () => { try { if (typeof lucide !== 'undefined') lucide.createIcons() } catch (e) {} };
-    const canAssignTasks = (role) => (ROLES_HIERARCHY[role] || 0) >= 3;
+    const isOverdue = (task) => !task.completedBy.includes(currentUser.id) && new Date(task.dueDate) < new Date().setHours(0, 0, 0, 0);
+    const safeRenderIcons = () => { try { if (typeof lucide !== 'undefined') lucide.createIcons() } catch (e) { } };
 
+    const canAssignTasks = (role) => (ROLES_HIERARCHY[role] || 0) >= 2;
     const getAssignableUsers = () => {
         const currentUserRank = ROLES_HIERARCHY[currentUser.role] || 0;
         return users.filter(user => {
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         safeRenderIcons();
     }
 
-    // --- 5. LÓGICA DE TAREFAS (GRANDES MUDANÇAS AQUI) ---
+    // --- 5. LÓGICA DE TAREFAS ---
     function switchTab(tab) {
         currentTab = tab;
         document.querySelectorAll('.tab-btn').forEach(t => {
@@ -138,57 +138,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         const tasksListDiv = document.getElementById('tasksList');
         tasksListDiv.innerHTML = '';
         let filteredTasks;
-
         if (currentTab === 'personal') {
             document.getElementById('tasksTitle').textContent = "Minhas Tarefas";
             filteredTasks = tasks.filter(task => task.assignedTo === currentUser.id);
-        } else { 
+        } else {
             document.getElementById('tasksTitle').textContent = "Tarefas Gerais";
             filteredTasks = tasks.filter(task => task.type === 'general');
         }
-
         if (filteredTasks.length === 0) {
             tasksListDiv.innerHTML = '<p class="p-6 text-center text-custom-muted">Nenhuma tarefa encontrada.</p>';
             return;
         }
-
         filteredTasks.forEach(task => {
             const creator = getUser(task.createdBy);
             const isCompletedByCurrentUser = task.completedBy.includes(currentUser.id);
-
             const isVisuallyCompleted = (task.type === 'personal' && task.status === 'completed') || (task.type === 'general' && isCompletedByCurrentUser);
-
             const taskItem = document.createElement('div');
             taskItem.className = 'task-item flex items-center justify-between p-4';
             taskItem.style.opacity = isVisuallyCompleted ? '0.5' : '1';
-
             taskItem.innerHTML = `
                 <div class="flex items-start space-x-4 flex-1">
-                    <input type="checkbox" data-task-id="${task.id}" class="task-checkbox mt-1 h-5 w-5 rounded bg-[#05131c] border-[#234356] text-[#33b4dc]" 
-                        ${isCompletedByCurrentUser ? 'checked' : ''} 
-                    />
+                    <input type="checkbox" data-task-id="${task.id}" class="task-checkbox mt-1 h-5 w-5 rounded bg-[#05131c] border-[#234356] text-[#33b4dc]" ${isCompletedByCurrentUser ? 'checked' : ''} />
                     <div class="flex-1">
                         <p class="font-medium text-white ${isVisuallyCompleted ? 'completed' : ''}">${task.title}</p>
                         <p class="text-sm text-custom-muted mt-1 ${isVisuallyCompleted ? 'completed' : ''}">${task.description || 'Sem descrição.'}</p>
                         <p class="text-xs mt-2 ${isOverdue(task) && !isVisuallyCompleted ? 'text-danger' : 'text-custom-muted'}">Prazo: ${formatDate(task.dueDate)}</p>
-                        
-                        <!-- NOVO: Bloco do criador da tarefa -->
-                        ${creator ? `
-                        <div class="task-creator flex items-center space-x-2 mt-2 pt-2 border-t border-gray-700/50">
-                            ${creator.photoUrl ? 
-                                `<img src="${creator.photoUrl}" class="w-5 h-5 rounded-full object-cover">` : 
-                                `<div class="w-5 h-5 rounded-full bg-gray-600 flex items-center justify-center"><i data-lucide="user" class="w-3 h-3 text-white"></i></div>`
-                            }
+                        ${creator ? `<div class="task-creator flex items-center space-x-2 mt-2 pt-2 border-t border-gray-700/50">
+                            ${creator.photoUrl ? `<img src="${creator.photoUrl}" class="w-5 h-5 rounded-full object-cover">` : `<div class="w-5 h-5 rounded-full bg-gray-600 flex items-center justify-center"><i data-lucide="user" class="w-3 h-3 text-white"></i></div>`}
                             <span class="text-xs text-gray-400">Criada por: ${creator.name}</span>
-                        </div>
-                        ` : ''}
-
-                        <!-- NOVO: Bloco de quem concluiu (para tarefas gerais) -->
-                        ${task.type === 'general' && task.completedBy.length > 0 ? `
-                        <div class="completed-by-list mt-2 text-xs text-gray-500">
+                        </div>` : ''}
+                        ${task.type === 'general' && task.completedBy.length > 0 ? `<div class="completed-by-list mt-2 text-xs text-gray-500">
                             Concluído por: ${task.completedBy.map(id => getUserName(id)).join(', ')}
-                        </div>
-                        ` : ''}
+                        </div>` : ''}
                     </div>
                 </div>
                 <button data-task-id="${task.id}" class="delete-task-btn text-red-500 hover:text-red-400 p-2"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button>
@@ -197,30 +178,62 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         safeRenderIcons();
     }
-    
+
+    function renderOverviewTasks() {
+        const overviewList = document.getElementById('overviewTasksList');
+        if (!overviewList) return;
+        overviewList.innerHTML = '';
+        const filtered = tasks.filter(t => overviewFilter === 'all' || (overviewFilter === 'pending' && t.status !== 'completed') || (overviewFilter === 'overdue' && isOverdue(t)));
+        if (filtered.length === 0) {
+            overviewList.innerHTML = '<tr><td colspan="6" class="text-center text-custom-muted py-4">Nenhuma tarefa encontrada.</td></tr>';
+            return;
+        }
+        filtered.forEach(task => {
+            const tr = document.createElement('tr');
+            const isTaskCompleted = task.type === 'personal' ? task.status === 'completed' : task.completedBy.length > 0;
+            const statusBadge = isTaskCompleted ? '<span class="status-badge status-completed">Concluída</span>' : (isOverdue(task) ? '<span class="status-badge status-pending">Atrasada</span>' : '<span class="status-badge status-pending">Pendente</span>');
+            tr.innerHTML = `
+                <td><span class="${isTaskCompleted ? 'completed' : ''}">${task.title}</span></td>
+                <td>${getUserName(task.assignedTo) || 'Geral'}</td><td>${getUserName(task.createdBy)}</td>
+                <td class="${isOverdue(task) && !isTaskCompleted ? 'text-danger' : ''}">${formatDate(task.dueDate)}</td>
+                <td>${statusBadge}</td>
+                <td><button data-task-id="${task.id}" class="delete-task-btn text-red-500 hover:text-red-400 p-1"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button></td>
+            `;
+            overviewList.appendChild(tr);
+        });
+        safeRenderIcons();
+    }
+
     async function handleAddTask(event) {
         event.preventDefault();
         const title = document.getElementById('taskTitle').value;
         const dueDate = document.getElementById('taskDueDate').value;
         if (!title || !dueDate) { alert('Título e Prazo são obrigatórios.'); return; }
-        
-        const assignedToId = document.getElementById('assignTaskTo').value;
-        const isAssignedToPerson = assignedToId && assignedToId !== "";
-        
-        const newTask = {
-            id: generateId(tasks), title, description: document.getElementById('taskDescription').value,
-            dueDate: new Date(dueDate).toISOString(), 
-            status: 'pending', 
-            completedBy: [],  
-            assignedTo: isAssignedToPerson ? parseInt(assignedToId) : null,
-            type: isAssignedToPerson ? 'personal' : 'general',
-            createdBy: currentUser.id,
-        };
 
-        tasks.push(newTask);
+        let finalAssignedTo, taskType;
+        if (canAssignTasks(currentUser.role)) {
+            const assignedToId = document.getElementById('assignTaskTo').value;
+            if (assignedToId && assignedToId !== "") {
+                finalAssignedTo = parseInt(assignedToId);
+                taskType = 'personal';
+            } else {
+                finalAssignedTo = null;
+                taskType = 'general';
+            }
+        } else {
+            finalAssignedTo = currentUser.id;
+            taskType = 'personal';
+        }
+
+        tasks.push({
+            id: generateId(tasks), title, description: document.getElementById('taskDescription').value,
+            dueDate: new Date(dueDate).toISOString(), status: 'pending', completedBy: [],
+            assignedTo: finalAssignedTo,
+            type: taskType,
+            createdBy: currentUser.id,
+        });
         await saveData();
         document.getElementById('addTaskForm').reset();
-        
         if (currentTab === 'overview') renderOverviewTasks(); else renderTasks();
     }
 
@@ -339,21 +352,40 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         if (button.matches('.delete-task-btn')) {
+            const taskId = button.dataset.taskId;
+            const taskToDelete = tasks.find(t => t.id == taskId);
+            if (!taskToDelete) return;
+            if (taskToDelete.type === 'general' && currentUser.role !== 'CEO' && currentUser.role !== 'Diretor Operacional') {
+                alert('Apenas CEO ou Diretor Operacional podem excluir tarefas gerais.');
+                return;
+            }
             if (confirm('Excluir esta tarefa?')) {
-                tasks = tasks.filter(t => t.id != button.dataset.taskId);
+                tasks = tasks.filter(t => t.id != taskId);
                 await saveData();
                 if (currentTab === 'overview') renderOverviewTasks(); else renderTasks();
             }
         }
     });
+
     document.body.addEventListener('change', async (event) => {
         if (event.target.matches('.task-checkbox')) {
-            const task = tasks.find(t => t.id == event.target.dataset.taskId);
-            if (task) {
+            const taskId = event.target.dataset.taskId;
+            const task = tasks.find(t => t.id == taskId);
+            if (!task) return;
+
+            // CORREÇÃO: Lógica de conclusão
+            if (task.type === 'personal') {
                 task.status = event.target.checked ? 'completed' : 'pending';
-                await saveData();
-                if (currentTab === 'overview') renderOverviewTasks(); else renderTasks();
             }
+            const userIndex = task.completedBy.indexOf(currentUser.id);
+            if (event.target.checked && userIndex === -1) {
+                task.completedBy.push(currentUser.id);
+            } else if (!event.target.checked && userIndex !== -1) {
+                task.completedBy.splice(userIndex, 1);
+            }
+
+            await saveData();
+            if (currentTab === 'overview') renderOverviewTasks(); else renderTasks();
         }
     });
 
@@ -372,8 +404,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('changeRoleForm').addEventListener('submit', changeRole);
     document.getElementById('cancelChangeRoleButton').addEventListener('click', cancelChangeRole);
     document.getElementById('cancelChangeRoleButton2').addEventListener('click', cancelChangeRole);
-
-    // CORREÇÃO: Listener para os filtros da Visão Geral
     document.getElementById('overviewFilters').addEventListener('click', (event) => {
         const button = event.target.closest('button');
         if (button && button.dataset.filter) {
