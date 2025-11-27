@@ -147,15 +147,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             const taskItem = document.createElement('div');
             taskItem.className = 'task-item flex items-center justify-between p-4';
             taskItem.innerHTML = `
-                <div class="flex items-start space-x-4">
-                    <input type="checkbox" data-task-id="${task.id}" class="task-checkbox mt-1 h-5 w-5 rounded bg-[#05131c] border-[#234356] text-[#33b4dc]" ${task.status === 'completed' ? 'checked' : ''} />
-                    <div>
-                        <p class="font-medium text-white ${task.status === 'completed' ? 'completed' : ''}">${task.title}</p>
-                        <p class="text-xs mt-1 ${isOverdue(task) ? 'text-danger' : 'text-custom-muted'}">Prazo: ${formatDate(task.dueDate)}</p>
-                    </div>
+            <div class="flex items-start space-x-4">
+                <input type="checkbox" data-task-id="${task.id}" class="task-checkbox mt-1 h-5 w-5 rounded bg-[#05131c] border-[#234356] text-[#33b4dc]" ${task.status === 'completed' ? 'checked' : ''} />
+                <div class="flex-1">
+                    <p class="font-medium text-white ${task.status === 'completed' ? 'completed' : ''}">${task.title}</p>
+                    
+                    <!-- DESCRIÇÃO ADICIONADA AQUI -->
+                    <p class="text-sm text-custom-muted mt-1 ${task.status === 'completed' ? 'completed' : ''}">${task.description || 'Sem descrição.'}</p>
+                    
+                    <p class="text-xs mt-2 ${isOverdue(task) ? 'text-danger' : 'text-custom-muted'}">Prazo: ${formatDate(task.dueDate)}</p>
                 </div>
-                <button data-task-id="${task.id}" class="delete-task-btn text-red-500 hover:text-red-400 p-2"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button>
-            `;
+            </div>
+            <button data-task-id="${task.id}" class="delete-task-btn text-red-500 hover:text-red-400 p-2"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button>
+        `;
             tasksListDiv.appendChild(taskItem);
         });
         safeRenderIcons();
@@ -189,14 +193,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!title || !dueDate) { alert('Título e Prazo são obrigatórios.'); return; }
 
         const assignedToId = document.getElementById('assignTaskTo').value;
-        let finalAssignedTo = currentUser.id; 
+        let finalAssignedTo = currentUser.id;
         let taskType = 'personal';
 
         if (canAssignTasks(currentUser.role)) {
             if (assignedToId && assignedToId !== "") {
                 finalAssignedTo = parseInt(assignedToId);
                 taskType = 'personal';
-            } else { 
+            } else {
                 finalAssignedTo = null;
                 taskType = 'general';
             }
