@@ -23,7 +23,7 @@ app.get('/api/data', (req, res) => {
             res.json(JSON.parse(fileData));
         } else {
             const defaultData = {
-                users: [{ id: 1, name: 'CEO', email: 'ceo@systems.com', password: '123', role: 'CEO', department: 'Diretoria', photoUrl: '' }],
+                users: [{ id: 1, name: 'CEO', email: 'exemplo@systems.com', password: '123456', role: 'Colaborador', department: 'Staff Systems_BSI', photoUrl: '' }],
                 tasks: []
             };
             fs.writeFileSync(dataFilePath, JSON.stringify(defaultData, null, 2));

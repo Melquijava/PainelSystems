@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('profileName').textContent = currentUser.name;
         document.getElementById('profileEmail').textContent = currentUser.email;
         document.getElementById('profileRole').textContent = currentUser.role;
-        document.getElementById('profileDepartment').textContent = currentUser.department || 'N/D';
+        document.getElementById('profileDepartment').textContent = currentUser.department || 'SI';
 
         const headerImg = document.getElementById('headerProfileImage');
         const cardImg = document.getElementById('cardProfileImage');
@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const userIndex = users.findIndex(u => u.id == userIdToChangeRole);
         if (userIndex !== -1) {
             users[userIndex].role = newRole;
-            if (users[userIndex].department === 'N/D') users[userIndex].department = 'Geral';
+            if (users[userIndex].department === 'SI') users[userIndex].department = 'Staff Systems_BSI';
             await saveData();
             alert(`Cargo de ${users[userIndex].name} alterado para ${newRole}.`);
             renderAdminUsersList();
